@@ -5,6 +5,9 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 ## Active Technologies
 - Python 3.12 + Typer >= 0.12 (CLI), Pillow >= 11 (PNG I/O), existing services (002-modify-data-flow)
 - Filesystem only — `/import` (read), `/export` (write) (002-modify-data-flow)
+- Python 3.12 + opencv-python-headless >= 4.10 (HoughLinesP), Pillow >= 11 (PNG I/O), numpy >= 2.1, typer >= 0.12 (003-fix-panel-crop)
+- Filesystem only — PNG files read from `/import`, written to `/export` (003-fix-panel-crop)
+- Python 3.12 + opencv-python-headless ≥ 4.10, numpy ≥ 2.1, Pillow ≥ 11, Typer ≥ 0.12 (004-crop-left-panel)
 
 - **Language**: Python 3.12 (upgrade to 3.14.3 once PyTorch ships 3.14 wheels)
 - **Package manager**: uv (`uv sync`, `uv run`)
@@ -58,9 +61,10 @@ uv run mypy src/                 # Type check (must pass --strict)
 - SAM model cache: `~/.cache/huggingface/hub/` (auto-downloaded on first run)
 
 ## Recent Changes
+- 004-crop-left-panel: Added Python 3.12 + opencv-python-headless ≥ 4.10, numpy ≥ 2.1, Pillow ≥ 11, Typer ≥ 0.12
+- 003-fix-panel-crop: Added Python 3.12 + opencv-python-headless >= 4.10 (HoughLinesP), Pillow >= 11 (PNG I/O), numpy >= 2.1, typer >= 0.12
 - 002-modify-data-flow: Added Python 3.12 + Typer >= 0.12 (CLI), Pillow >= 11 (PNG I/O), existing services
 
-- 001-floor-plan-crop: Initial feature — CAD floor plan panel detector and cropper
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

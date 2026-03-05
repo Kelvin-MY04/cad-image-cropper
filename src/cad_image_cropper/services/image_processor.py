@@ -6,7 +6,11 @@ import numpy.typing as npt
 from PIL import Image
 
 from cad_image_cropper.detectors.border_detector import BorderDetector
-from cad_image_cropper.exceptions import CadImageCropperError, InvalidImageError
+from cad_image_cropper.exceptions import (
+    BorderDetectionError,
+    CadImageCropperError,
+    InvalidImageError,
+)
 from cad_image_cropper.models.crop_region import CropRegion
 from cad_image_cropper.models.detection_method import DetectionMethod
 from cad_image_cropper.models.detection_result import DetectionResult
@@ -89,12 +93,11 @@ class ImageProcessor:
     def _build_crop_region(
         self, detection: DetectionResult, metadata: ImageMetadata
     ) -> CropRegion:
-        return CropRegion(
-            x_start=0,
-            x_end=detection.x_coordinate or metadata.width,
-            y_start=0,
-            y_end=metadata.height,
-        )
+        if detection.crop_region is None:
+            raise BorderDetectionError(
+                "crop_region is None for non-NONE detection", metadata.file_path
+            )
+        return detection.crop_region
 
     def _crop(self, img: Image.Image, region: CropRegion) -> Image.Image:
         return self._cropper.crop_image(img, region)

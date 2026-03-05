@@ -29,6 +29,6 @@ class TwoStageDetector(BorderDetector):
             return (
                 result.confidence is not None
                 and result.confidence >= SAM_CONFIDENCE_THRESHOLD
-                and result.x_coordinate is not None
+                and result.crop_region is not None
             )
-        return result.x_coordinate is not None
+        return result.crop_region is not None

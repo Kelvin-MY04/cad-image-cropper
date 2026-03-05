@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from PIL import Image
@@ -7,10 +8,14 @@ from pytest import approx
 
 from cad_image_cropper.exceptions import InvalidImageError
 from cad_image_cropper.models.crop_region import CropRegion
+from cad_image_cropper.models.detection_method import DetectionMethod
+from cad_image_cropper.models.detection_result import DetectionResult
 from cad_image_cropper.models.image_metadata import ImageMetadata
+from cad_image_cropper.models.processing_status import ProcessingStatus
 from cad_image_cropper.services.image_cropper import ImageCropper
 from cad_image_cropper.services.image_exporter import ImageExporter
 from cad_image_cropper.services.image_loader import ImageLoader
+from cad_image_cropper.services.image_processor import ImageProcessor
 
 
 def _save_test_png(
@@ -127,3 +132,32 @@ class TestImageExporter:
             exporter = ImageExporter()
             exporter.export_image(img, metadata, output_dir)
             assert output_dir.is_dir()
+
+
+class TestImageProcessorCropRegion:
+    def test_crop_uses_detection_crop_region(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            input_file = tmp_path / "plan.png"
+            output_dir = tmp_path / "out"
+            Image.new("RGB", (1200, 800), color=(240, 240, 240)).save(
+                input_file, format="PNG", dpi=(150.0, 150.0)
+            )
+            region = CropRegion(x_start=0, x_end=900, y_start=0, y_end=800)
+            detector = MagicMock()
+            detector.detect_border.return_value = DetectionResult(
+                crop_region=region, confidence=None, method=DetectionMethod.CLASSICAL
+            )
+            processor = ImageProcessor(
+                detector=detector,
+                loader=ImageLoader(),
+                cropper=ImageCropper(),
+                exporter=ImageExporter(),
+                output_dir=output_dir,
+            )
+            result = processor.process_image(input_file)
+            assert result.status == ProcessingStatus.SUCCESS
+            assert result.output_path is not None
+            out_img = Image.open(result.output_path)
+            assert out_img.width == 900
+            assert out_img.height == 800

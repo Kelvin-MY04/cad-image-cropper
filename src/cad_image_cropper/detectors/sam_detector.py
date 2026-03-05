@@ -9,6 +9,7 @@ import torch
 from cad_image_cropper.constants import SAM_CONFIDENCE_THRESHOLD, SAM_MODEL_ID
 from cad_image_cropper.detectors.border_detector import BorderDetector
 from cad_image_cropper.exceptions import BorderDetectionError, ModelLoadError
+from cad_image_cropper.models.crop_region import CropRegion
 from cad_image_cropper.models.detection_method import DetectionMethod
 from cad_image_cropper.models.detection_result import DetectionResult
 from cad_image_cropper.models.image_metadata import ImageMetadata
@@ -50,20 +51,20 @@ class SamBorderDetector(BorderDetector):
             best_score = float(scores[best_idx])
             if not self._is_high_confidence(best_score):
                 return DetectionResult(
-                    x_coordinate=None,
+                    crop_region=None,
                     confidence=best_score,
                     method=DetectionMethod.NONE,
                 )
             mask = masks[0][0][best_idx].numpy()
-            x = self._extract_x_from_mask(mask)
-            if x is None:
+            crop_region = self._extract_crop_region_from_mask(mask)
+            if crop_region is None:
                 return DetectionResult(
-                    x_coordinate=None,
+                    crop_region=None,
                     confidence=best_score,
                     method=DetectionMethod.NONE,
                 )
             return DetectionResult(
-                x_coordinate=x,
+                crop_region=crop_region,
                 confidence=best_score,
                 method=DetectionMethod.MODEL_SAM,
             )
@@ -85,14 +86,21 @@ class SamBorderDetector(BorderDetector):
         col_means[width - edge_margin :] = float("inf")
         return int(np.argmin(col_means))
 
-    def _extract_x_from_mask(
+    def _extract_crop_region_from_mask(
         self, mask: npt.NDArray[Any]
-    ) -> int | None:
+    ) -> CropRegion | None:
+        row_sums = mask.sum(axis=1)
         col_sums = mask.sum(axis=0)
-        nonzero = np.nonzero(col_sums)[0]
-        if len(nonzero) == 0:
+        nonzero_rows = np.nonzero(row_sums)[0]
+        nonzero_cols = np.nonzero(col_sums)[0]
+        if len(nonzero_rows) == 0 or len(nonzero_cols) == 0:
             return None
-        return int(nonzero[0])
+        return CropRegion(
+            x_start=int(nonzero_cols[0]),
+            x_end=int(nonzero_cols[-1]),
+            y_start=int(nonzero_rows[0]),
+            y_end=int(nonzero_rows[-1]),
+        )
 
     def _is_high_confidence(self, score: float) -> bool:
         return score >= SAM_CONFIDENCE_THRESHOLD

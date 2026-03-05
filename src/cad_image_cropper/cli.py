@@ -28,7 +28,7 @@ def _build_processor(output_dir: Path) -> tuple[ImageProcessor, bool]:
     detector: BorderDetector
     try:
         sam = SamBorderDetector()
-        detector = TwoStageDetector(primary=sam, fallback=ClassicalBorderDetector())
+        detector = TwoStageDetector(primary=ClassicalBorderDetector(), fallback=sam)
     except ModelLoadError:
         typer.echo(
             "WARNING: HuggingFace model could not be loaded"

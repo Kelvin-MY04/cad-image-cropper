@@ -86,25 +86,34 @@ class TestImageMetadata:
 
 
 class TestDetectionResult:
-    def test_classical_result(self) -> None:
-        r = DetectionResult(x_coordinate=500, confidence=None, method=DetectionMethod.CLASSICAL)
-        assert r.x_coordinate == 500
+    def test_detection_result_with_crop_region(self) -> None:
+        region = CropRegion(x_start=0, x_end=800, y_start=0, y_end=600)
+        r = DetectionResult(crop_region=region, confidence=None, method=DetectionMethod.CLASSICAL)
+        assert r.crop_region == region
         assert r.confidence is None
 
-    def test_none_result(self) -> None:
-        r = DetectionResult(x_coordinate=None, confidence=None, method=DetectionMethod.NONE)
-        assert r.x_coordinate is None
+    def test_detection_result_none_has_null_crop_region(self) -> None:
+        r = DetectionResult(crop_region=None, confidence=None, method=DetectionMethod.NONE)
+        assert r.crop_region is None
+        assert r.method == DetectionMethod.NONE
 
-    def test_none_with_x_coordinate_raises(self) -> None:
+    def test_detection_result_crop_region_required_for_classical(self) -> None:
         with pytest.raises(ValueError):
-            DetectionResult(x_coordinate=100, confidence=None, method=DetectionMethod.NONE)
+            DetectionResult(crop_region=None, confidence=None, method=DetectionMethod.CLASSICAL)
+
+    def test_none_with_crop_region_raises(self) -> None:
+        region = CropRegion(x_start=0, x_end=800, y_start=0, y_end=600)
+        with pytest.raises(ValueError):
+            DetectionResult(crop_region=region, confidence=None, method=DetectionMethod.NONE)
 
     def test_sam_without_confidence_raises(self) -> None:
+        region = CropRegion(x_start=0, x_end=800, y_start=0, y_end=600)
         with pytest.raises(ValueError):
-            DetectionResult(x_coordinate=100, confidence=None, method=DetectionMethod.MODEL_SAM)
+            DetectionResult(crop_region=region, confidence=None, method=DetectionMethod.MODEL_SAM)
 
     def test_sam_result(self) -> None:
-        r = DetectionResult(x_coordinate=400, confidence=0.9, method=DetectionMethod.MODEL_SAM)
+        region = CropRegion(x_start=0, x_end=400, y_start=0, y_end=600)
+        r = DetectionResult(crop_region=region, confidence=0.9, method=DetectionMethod.MODEL_SAM)
         assert r.confidence == 0.9
 
 
