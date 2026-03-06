@@ -6,7 +6,11 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
-from cad_image_cropper.constants import SAM_CONFIDENCE_THRESHOLD, SAM_MODEL_ID
+from cad_image_cropper.constants import (
+    SAM_CONFIDENCE_THRESHOLD,
+    SAM_MODEL_ID,
+    TITLE_BLOCK_ZONE_LEFT_RATIO,
+)
 from cad_image_cropper.detectors.border_detector import BorderDetector
 from cad_image_cropper.exceptions import BorderDetectionError, ModelLoadError
 from cad_image_cropper.models.crop_region import CropRegion
@@ -83,7 +87,7 @@ class SamBorderDetector(BorderDetector):
         col_means = gray.mean(axis=0)
         edge_margin = int(width * 0.05)
         col_means[:edge_margin] = float("inf")
-        col_means[width - edge_margin :] = float("inf")
+        col_means[int(width * TITLE_BLOCK_ZONE_LEFT_RATIO) :] = float("inf")
         return int(np.argmin(col_means))
 
     def _extract_crop_region_from_mask(

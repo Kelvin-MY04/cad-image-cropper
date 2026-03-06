@@ -9,6 +9,8 @@ from cad_image_cropper.constants import (
     BORDER_MIN_WIDTH_RATIO,
     BORDER_OPEN_KERNEL_SIZE,
     SEPARATOR_MIN_HEIGHT_RATIO,
+    SEPARATOR_MIN_HEIGHT_RATIO_COLOR,
+    TITLE_BLOCK_ZONE_INNER_LEFT_RATIO,
     TITLE_BLOCK_ZONE_LEFT_RATIO,
     TITLE_BLOCK_ZONE_RIGHT_RATIO,
 )
@@ -123,10 +125,26 @@ class ClassicalBorderDetector(BorderDetector):
         morphed = cv2.morphologyEx(region, cv2.MORPH_OPEN, kernel)
         col_sums = morphed.sum(axis=0).astype(float)
         coverage = col_sums / (255.0 * region_h)
-        left = int(img_w * TITLE_BLOCK_ZONE_LEFT_RATIO)
+        inner_left = int(img_w * TITLE_BLOCK_ZONE_INNER_LEFT_RATIO)
         right = int(img_w * TITLE_BLOCK_ZONE_RIGHT_RATIO)
-        qualifying = [x for x in range(left, right) if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO]
-        return min(qualifying) if qualifying else None
+        qualifying = [
+            x for x in range(inner_left, right)
+            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO
+        ]
+        if qualifying:
+            return min(qualifying)
+        qualifying_color = [
+            x for x in range(inner_left, right)
+            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO_COLOR
+        ]
+        if qualifying_color:
+            return min(qualifying_color)
+        left = int(img_w * TITLE_BLOCK_ZONE_LEFT_RATIO)
+        qualifying_full = [
+            x for x in range(left, right)
+            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO
+        ]
+        return min(qualifying_full) if qualifying_full else None
 
     def _to_crop_region(self, x: int, y: int, w: int, h: int) -> CropRegion:
         return CropRegion(x_start=x, x_end=x + w, y_start=y, y_end=y + h)
