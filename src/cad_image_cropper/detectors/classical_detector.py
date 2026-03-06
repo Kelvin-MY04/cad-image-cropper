@@ -146,5 +146,3 @@ class ClassicalBorderDetector(BorderDetector):
         ]
         return min(qualifying_full) if qualifying_full else None
 
-    def _to_crop_region(self, x: int, y: int, w: int, h: int) -> CropRegion:
-        return CropRegion(x_start=x, x_end=x + w, y_start=y, y_end=y + h)

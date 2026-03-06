@@ -1,7 +1,7 @@
 from pathlib import Path
 
-DEFAULT_INPUT_DIR: Path = Path("import")
-DEFAULT_OUTPUT_DIR: Path = Path("export")
+DEFAULT_INPUT_DIR: Path = Path("/import")
+DEFAULT_OUTPUT_DIR: Path = Path("/export")
 SAM_MODEL_ID: str = "facebook/sam-vit-base"
 SAM_CONFIDENCE_THRESHOLD: float = 0.75
 HOUGH_THRESHOLD: int = 100

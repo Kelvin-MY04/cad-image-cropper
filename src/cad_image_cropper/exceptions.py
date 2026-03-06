@@ -9,20 +9,16 @@ class CadImageCropperError(Exception):
 
 
 class InvalidImageError(CadImageCropperError):
-    def __init__(self, message: str, file_path: Path) -> None:
-        super().__init__(message, file_path)
+    pass
 
 
 class BorderDetectionError(CadImageCropperError):
-    def __init__(self, message: str, file_path: Path) -> None:
-        super().__init__(message, file_path)
+    pass
 
 
 class ModelLoadError(CadImageCropperError):
-    def __init__(self, message: str, file_path: Path) -> None:
-        super().__init__(message, file_path)
+    pass
 
 
 class ExportError(CadImageCropperError):
-    def __init__(self, message: str, file_path: Path) -> None:
-        super().__init__(message, file_path)
+    pass
