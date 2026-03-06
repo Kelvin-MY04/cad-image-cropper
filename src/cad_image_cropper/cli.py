@@ -1,14 +1,18 @@
 from pathlib import Path
 
 import typer
-from dotenv import load_dotenv
-from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TextColumn
-
-load_dotenv()
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
 
 from cad_image_cropper.constants import DEFAULT_INPUT_DIR, DEFAULT_OUTPUT_DIR
 from cad_image_cropper.detectors.border_detector import BorderDetector
 from cad_image_cropper.exceptions import ModelLoadError
+from cad_image_cropper.models.processing_result import ProcessingResult
 from cad_image_cropper.models.processing_status import ProcessingStatus
 from cad_image_cropper.services.batch_processor import BatchProcessor
 from cad_image_cropper.services.image_cropper import ImageCropper
@@ -70,32 +74,35 @@ def crop(
     if resolved_input.is_dir():
         _run_batch(processor, resolved_input, resolved_output, verbose)
     else:
-        _run_single(processor, resolved_input, resolved_output, verbose)
+        _run_single(processor, resolved_input, verbose)
+
+
+def _print_result(result: ProcessingResult, verbose: bool) -> None:
+    if result.status == ProcessingStatus.SUCCESS:
+        if verbose:
+            typer.echo(
+                f"OK: {result.input_path.name} -> {result.output_path}"
+            )
+    elif result.status in (
+        ProcessingStatus.SKIPPED_NO_BORDER,
+        ProcessingStatus.SKIPPED_CORRUPT,
+    ):
+        typer.echo(f"WARNING: {result.warning_message}", err=True)
+    else:
+        typer.echo(
+            f"ERROR: {result.input_path.name} failed"
+            f" — {result.warning_message}.",
+            err=True,
+        )
 
 
 def _run_single(
     processor: ImageProcessor,
     input_path: Path,
-    output_dir: Path,
     verbose: bool,
 ) -> None:
     result = processor.process_image(input_path)
-    if result.status == ProcessingStatus.SUCCESS:
-        if verbose:
-            typer.echo(f"OK: {input_path.name} -> {result.output_path}")
-    elif result.status == ProcessingStatus.SKIPPED_NO_BORDER:
-        typer.echo(
-            f"WARNING: No border detected in {input_path.name} — skipped.", err=True
-        )
-    elif result.status == ProcessingStatus.SKIPPED_CORRUPT:
-        typer.echo(
-            f"WARNING: Could not open {input_path.name} as a valid PNG — skipped.",
-            err=True,
-        )
-    else:
-        typer.echo(
-            f"ERROR: {input_path.name} failed — {result.warning_message}.", err=True
-        )
+    _print_result(result, verbose)
 
 
 def _run_batch(
@@ -132,21 +139,17 @@ def _run_batch(
             progress.advance(task)
 
     for result in results:
+        _print_result(result, verbose)
         if result.status == ProcessingStatus.SUCCESS:
             processed += 1
-            if verbose:
-                typer.echo(f"OK: {result.input_path.name} -> {result.output_path}")
         elif result.status in (
             ProcessingStatus.SKIPPED_NO_BORDER,
             ProcessingStatus.SKIPPED_CORRUPT,
         ):
             skipped += 1
-            typer.echo(f"WARNING: {result.warning_message}", err=True)
         else:
             failed += 1
-            typer.echo(
-                f"ERROR: {result.input_path.name} failed — {result.warning_message}.",
-                err=True,
-            )
 
-    typer.echo(f"Processed: {processed} | Skipped: {skipped} | Failed: {failed}")
+    typer.echo(
+        f"Processed: {processed} | Skipped: {skipped} | Failed: {failed}"
+    )

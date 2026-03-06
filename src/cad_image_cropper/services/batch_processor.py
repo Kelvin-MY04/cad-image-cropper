@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from cad_image_cropper.exceptions import InvalidImageError
 from cad_image_cropper.models.processing_result import ProcessingResult
 from cad_image_cropper.services.image_processor import ImageProcessor
 
@@ -13,8 +12,8 @@ class BatchProcessor:
         self, input_dir: Path, output_base: Path | None = None
     ) -> list[ProcessingResult]:
         if not input_dir.is_dir():
-            raise InvalidImageError(
-                f"{input_dir} is not a directory", input_dir
+            raise FileNotFoundError(
+                f"{input_dir} is not a directory"
             )
         files = self.collect_png_files(input_dir)
         return [

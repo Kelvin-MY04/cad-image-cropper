@@ -27,7 +27,7 @@ class ClassicalBorderDetector(BorderDetector):
         self, metadata: ImageMetadata, image_array: npt.NDArray[Any]
     ) -> DetectionResult:
         try:
-            gray = self._convert_to_grayscale_array(image_array)
+            gray = self._invert_grayscale(self._to_grayscale_array(image_array))
             binary = self._isolate_bold_lines(gray)
             candidates = self._find_panel_contours(binary, metadata.width, metadata.height)
             if not candidates:
@@ -51,13 +51,16 @@ class ClassicalBorderDetector(BorderDetector):
     def _no_detection(self) -> DetectionResult:
         return DetectionResult(crop_region=None, confidence=None, method=DetectionMethod.NONE)
 
-    def _convert_to_grayscale_array(
+    def _to_grayscale_array(
         self, image_array: npt.NDArray[Any]
     ) -> npt.NDArray[Any]:
         if len(image_array.shape) == 2:
-            gray = image_array
-        else:
-            gray = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+            return image_array
+        return cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
+
+    def _invert_grayscale(
+        self, gray: npt.NDArray[Any]
+    ) -> npt.NDArray[Any]:
         return cv2.bitwise_not(gray)
 
     def _apply_binary_threshold(
@@ -127,22 +130,30 @@ class ClassicalBorderDetector(BorderDetector):
         coverage = col_sums / (255.0 * region_h)
         inner_left = int(img_w * TITLE_BLOCK_ZONE_INNER_LEFT_RATIO)
         right = int(img_w * TITLE_BLOCK_ZONE_RIGHT_RATIO)
-        qualifying = [
-            x for x in range(inner_left, right)
-            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO
-        ]
-        if qualifying:
-            return min(qualifying)
-        qualifying_color = [
-            x for x in range(inner_left, right)
-            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO_COLOR
-        ]
-        if qualifying_color:
-            return min(qualifying_color)
+        result = self._qualifying_columns(
+            coverage, inner_left, right, SEPARATOR_MIN_HEIGHT_RATIO
+        )
+        if result is not None:
+            return result
+        result = self._qualifying_columns(
+            coverage, inner_left, right, SEPARATOR_MIN_HEIGHT_RATIO_COLOR
+        )
+        if result is not None:
+            return result
         left = int(img_w * TITLE_BLOCK_ZONE_LEFT_RATIO)
-        qualifying_full = [
-            x for x in range(left, right)
-            if coverage[x] >= SEPARATOR_MIN_HEIGHT_RATIO
+        return self._qualifying_columns(
+            coverage, left, right, SEPARATOR_MIN_HEIGHT_RATIO
+        )
+
+    def _qualifying_columns(
+        self,
+        coverage: npt.NDArray[Any],
+        left: int,
+        right: int,
+        threshold: float,
+    ) -> int | None:
+        columns = [
+            x for x in range(left, right) if coverage[x] >= threshold
         ]
-        return min(qualifying_full) if qualifying_full else None
+        return min(columns) if columns else None
 

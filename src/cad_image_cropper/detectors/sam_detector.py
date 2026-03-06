@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -8,6 +10,7 @@ import torch
 
 from cad_image_cropper.constants import (
     SAM_CONFIDENCE_THRESHOLD,
+    SAM_EDGE_MARGIN_RATIO,
     SAM_MODEL_ID,
     TITLE_BLOCK_ZONE_LEFT_RATIO,
 )
@@ -18,6 +21,9 @@ from cad_image_cropper.models.detection_method import DetectionMethod
 from cad_image_cropper.models.detection_result import DetectionResult
 from cad_image_cropper.models.image_metadata import ImageMetadata
 
+if TYPE_CHECKING:
+    from transformers import SamModel, SamProcessor
+
 
 class SamBorderDetector(BorderDetector):
     def __init__(self) -> None:
@@ -25,8 +31,8 @@ class SamBorderDetector(BorderDetector):
             from transformers import SamModel, SamProcessor
 
             token = os.environ.get("HF_TOKEN")
-            self._processor: object = SamProcessor.from_pretrained(SAM_MODEL_ID, token=token)
-            self._model: object = SamModel.from_pretrained(SAM_MODEL_ID, token=token)
+            self._processor: SamProcessor = SamProcessor.from_pretrained(SAM_MODEL_ID, token=token)
+            self._model: SamModel = SamModel.from_pretrained(SAM_MODEL_ID, token=token)
         except Exception as exc:
             raise ModelLoadError(
                 f"Failed to load SAM model '{SAM_MODEL_ID}': {exc}",
@@ -38,13 +44,13 @@ class SamBorderDetector(BorderDetector):
     ) -> DetectionResult:
         try:
             approx_x = self._estimate_x_by_column_darkness(image_array, metadata.width)
-            inputs = self._processor(  # type: ignore[operator]
+            inputs = self._processor(
                 images=image_array,
                 input_points=[[[approx_x, metadata.height // 2]]],
                 return_tensors="pt",
             )
             with torch.no_grad():
-                outputs = self._model(**inputs)  # type: ignore[operator]
+                outputs = self._model(**inputs)
             masks = self._processor.image_processor.post_process_masks(  # type: ignore[attr-defined]
                 outputs.pred_masks,
                 inputs["original_sizes"],
@@ -85,7 +91,7 @@ class SamBorderDetector(BorderDetector):
         else:
             gray = image_array.astype(float)
         col_means = gray.mean(axis=0)
-        edge_margin = int(width * 0.05)
+        edge_margin = int(width * SAM_EDGE_MARGIN_RATIO)
         col_means[:edge_margin] = float("inf")
         col_means[int(width * TITLE_BLOCK_ZONE_LEFT_RATIO) :] = float("inf")
         return int(np.argmin(col_means))

@@ -1,6 +1,6 @@
 from PIL import Image
 
-from cad_image_cropper.exceptions import ExportError
+from cad_image_cropper.exceptions import InvalidImageError
 from cad_image_cropper.models.crop_region import CropRegion
 
 
@@ -10,7 +10,7 @@ class ImageCropper:
             box = self._build_crop_box(region)
             return image.crop(box)
         except Exception as exc:
-            raise ExportError(
+            raise InvalidImageError(
                 f"Failed to crop image: {exc}",
                 image.filename if hasattr(image, "filename") else None,  # type: ignore[arg-type]
             ) from exc

@@ -23,12 +23,11 @@ class TwoStageDetector(BorderDetector):
         return self._fallback.detect_border(metadata, image_array)
 
     def _is_result_sufficient(self, result: DetectionResult) -> bool:
-        if result.method == DetectionMethod.NONE:
+        if result.method == DetectionMethod.NONE or result.crop_region is None:
             return False
         if result.method == DetectionMethod.MODEL_SAM:
             return (
                 result.confidence is not None
                 and result.confidence >= SAM_CONFIDENCE_THRESHOLD
-                and result.crop_region is not None
             )
-        return result.crop_region is not None
+        return True
